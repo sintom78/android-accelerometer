@@ -2,7 +2,8 @@
 
 import getopt
 import sys
-import xml.etree.ElementTree as ElementTree
+from AccelData import AccelData
+from AccelData import AccelPoint
 import matplotlib.pyplot as pyplot
 import matplotlib.figure as figure
 import matplotlib.cm as cm
@@ -14,7 +15,7 @@ from scipy import signal
 STEP=8
 
 def findCorrectionCoef(data):
-    CORRECTION_WINDOW=10 #num of samples
+    CORRECTION_WINDOW=15 #num of samples
     current = 0
     coefIdx = 0
     i = 0
@@ -53,7 +54,7 @@ def calcDeltaT(timestamps):
         if d == 1:
             t=timestamp
         elif d >= STEP:
-            deltaT.append(timestamp-t)
+            deltaT.append((timestamp-t) / 1000.0)
             t = timestamp
 
     return deltaT
@@ -73,49 +74,6 @@ def calcDelta(data):
 
     return delta
 
-def getFloat(num):
-    return float(num.replace(',','.'))
-
-def loadAccelData(fileName):
-    doc = ElementTree.parse(fileName)
-    accelItems=doc.findall("./AccelItem")
-    data = []
-    t=0
-    total_time=0
-    samples=0
-    med_samples=0
-    n=0
-    for accItem in accelItems:
-         item = {}
-         item['x'] = getFloat(accItem.get("x"))
-         item['y'] = getFloat(accItem.get("y"))
-         item['z'] = getFloat(accItem.get("z"))
-         item['timestamp'] = long(accItem.get("data"))
-         data.append(item)
-         n=n+1
-         if t == 0:
-             t = item['timestamp']
-             total_time = t
-         else:
-             dt = (item['timestamp'] - t) / 1000.0
-             if (dt >= 1):
-                t = item['timestamp']
-                if (med_samples == 0):
-                    med_samples = med_samples + n
-                else:
-                    med_samples = med_samples + n
-                    med_samples = med_samples / 2.0
-
-                n=0
-         
-    if len(data) > 0:
-        total_time = (data[len(data)-1]['timestamp'] - data[0]['timestamp']) / 1000.0
-        print "Total time: " + str(total_time)
-        print "Samples per second(medium): " + str(med_samples)
-
-    return data
-
-
 def getXYZMod(accelData):
     x = []
     z = []
@@ -123,17 +81,23 @@ def getXYZMod(accelData):
     mod = []
     t = []
     for accel in accelData:
-        x.append(accel['x'])
-        y.append(accel['y'])
-        z.append(accel['z'])
-        t.append(accel['timestamp'])
-        m = accel['x']**2 + accel['y']**2 + accel['z']**2
+        x.append(accel.x)
+        y.append(accel.y)
+        z.append(accel.z)
+        t.append(accel.timestamp)
+        m = accel.x**2 + accel.y**2 + accel.z**2
         if (m==0):
             mod.append(0)
         else:
             mod.append(numpy.sqrt(m))
 
     return x,y,z,mod,t
+
+def addOffset(data,offset):
+    i = 0
+    while i < len(data):
+        data[i] = data[i] + offset
+        i=i+1
 
 def plot2D(data,figure=1):
     pyplot.figure(figure)
@@ -196,7 +160,7 @@ def calcInteg(a,dt):
         if i==0:
             v.append(0)
         else:
-            v.append(v[i-1]+(a[i-1]/dt[i-1]))
+            v.append(v[i-1]+(a[i]*dt[i]))
         i=i+1
 
     return v
@@ -222,67 +186,82 @@ def main(argv):
            print 'no input file'
            sys.exit(2)
 
-    accelData = loadAccelData(inputfile)
-    x,y,z,mod,t = getXYZMod(accelData)
+    accelData = AccelData()
+    accelData.loadAccelData(inputfile)
+    accelData.calcDeltasT()
+    x,y,z,mod,t = getXYZMod(accelData.accelData)
     f2x = filter2(x)
     fx = filter(x)
     fy = filter(y)
     fz = filter(z)
     fmod = filter(mod)
     f2mod = filter2(mod)
-    dt = calcDeltaT(t)
-    vx = calcInteg(fx,dt)
-    sx = calcInteg(vx,dt)
 
     ax, devax = avgWithStep(x,8)
     fax, devfax = avgWithStep(fx,8)
     amod,devmod = avgWithStep(mod,8)
     afmod,devafmod = avgWithStep(fmod,8)
 
+#CALCULATE CORRECTION
     corrX = findCorrectionCoef(x)
-    print "Correctio  coefX:" + str(corrX)
-
+    print "Correction  coefX:" + str(corrX)
+    corrMod = findCorrectionCoef(mod)
+    print "Correction coefMod: " + str(corrMod)
+    offx = x[0:]
+    addOffset(offx,-corrX)
+    offy = y[0:]
+    corrY=findCorrectionCoef(y)
+    addOffset(offy,-corrY)
+    offMod = mod[0:]
+    addOffset(offMod,-corrMod)
+    corrOffMod = findCorrectionCoef(offMod)
+    print "Correction for offMod: " + str(corrOffMod)
 #    plot3D(x,fx,y,fy,z,fz,mod,fmod)
 #    plot2D([x,fx],[['x'],['fx']])
 
+#CALCULATE Velocity,distance
+    dt = calcDeltaT(t)
+#    dts = dt[0:] / 1000.0f
+    voffx = calcInteg(offx,dt)
+    sx = calcInteg(voffx,dt)
+    voffy = calcInteg(offy,dt)
+    sy = calcInteg(voffy,dt)
+    vmod = calcInteg(offMod,dt)
+    smod = calcInteg(vmod,dt)
     dplot = [
-        {'data': [ax,devax,x], 'legend': ['ax','devax','x']},
-        {'data': [fax,devfax,fx], 'legend':  ['fax','devfax','fx']}
-        ]
-
-    plot2D(dplot,1)
-    pyplot.show()
-    dplot = [ {'data': [f2x,x,fx], 'legend': ['f2x','x','fx']},
-              {'data': [f2mod,mod,fmod], 'legend': ['f2mod','mod','fmod']}
+                {'data': [offMod,vmod,smod], 'legend': ['offMod','vmod','smod']},
+                {'data': [mod], 'legend': ['mod'] }
             ]
     plot2D(dplot,1)
     pyplot.show()
+#
+#   dplot = [
+#               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
+#               {'data': [x], 'legend':['x']}
+#           ]
+#   plot2D(dplot,1)
+#   pyplot.show()
+#
+#   dplot = [
+#               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
+#               {'data': [y], 'legend':['y']}
+#           ]
+#   plot2D(dplot,1)
+#   pyplot.show()
+ 
+#MAKE PLOTS
+#   dplot = [
+#       {'data': [ax,devax,x], 'legend': ['ax','devax','x']},
+#       {'data': [fax,devfax,fx], 'legend':  ['fax','devfax','fx']}
+#       ]
+#
+#   plot2D(dplot,1)
+#   pyplot.show()
+#   dplot = [ {'data': [f2x,x,fx], 'legend': ['f2x','x','fx']},
+#             {'data': [f2mod,mod,fmod], 'legend': ['f2mod','mod','fmod']}
+#           ]
+#   plot2D(dplot,1)
+#   pyplot.show()
     
-#    plot2D([fax,devfax,fx],['fax','devfax','fx'])
-#    pyplot.show()
-
-#    plot2D([devax,devfax],['devax','devfax'])
-#    pyplot.show()
-
-#    plot2D([[amod,devmod,mod]], [['amod','devmod','mod']],2)
-  #  pyplot.show()
-
-#    plot2D([[afmod,devafmod,fmod]],[['afmod','devafmod','fmod']],3)
-#    pyplot.show()
-
-#    plot2D([[devmod,devafmod]],[['devmod','devafmod']])
-#    pyplot.show()
- #    plot2D([fx,vx],[['fx'],['vx']])
-#    pyplot.show()
-
-#    plot2D([vx,sx],[['vx'],['sx']])
-#    pyplot.show()
-
-#    dx = calcDelta(fx)
-#    dy = calcDelta(fy)
-#    dz = calcDelta(fz)
-#    dmod = calcDelta(fmod)
-#    plot2D(fx,dx,fy,dy,fz,dz,fmod,dmod) 
-
 if __name__=="__main__":
     main(sys.argv[1:])
