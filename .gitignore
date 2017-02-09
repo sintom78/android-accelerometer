@@ -1,2 +1,4 @@
 *.xml
 *.ods
+*.pyc
+*.swp
