@@ -46,52 +46,10 @@ def filter(data):
 
     return result
 
-def calcDeltaT(timestamps):
-    d = 0
-    deltaT = []
-    for timestamp in timestamps:
-        d = d + 1
-        if d == 1:
-            t=timestamp
-        elif d >= STEP:
-            deltaT.append((timestamp-t) / 1000.0)
-            t = timestamp
-
-    return deltaT
-
 def plotAccel(accelData):
     pyplot.plot(accelData)
     pyplot.grid()
     pyplot.show()
-
-def calcDelta(data):
-    delta = []
-    for d in data:
-        if len(delta) == 0:
-            delta.append(d)
-        else:
-            delta.append(d - delta[len(delta)-1])
-
-    return delta
-
-def getXYZMod(accelData):
-    x = []
-    z = []
-    y = []
-    mod = []
-    t = []
-    for accel in accelData:
-        x.append(accel.x)
-        y.append(accel.y)
-        z.append(accel.z)
-        t.append(accel.timestamp)
-        m = accel.x**2 + accel.y**2 + accel.z**2
-        if (m==0):
-            mod.append(0)
-        else:
-            mod.append(numpy.sqrt(m))
-
-    return x,y,z,mod,t
 
 def addOffset(data,offset):
     i = 0
@@ -189,7 +147,12 @@ def main(argv):
     accelData = AccelData()
     accelData.loadAccelData(inputfile)
     accelData.calcDeltasT()
-    x,y,z,mod,t = getXYZMod(accelData.accelData)
+
+    x = accelData.getXCollection()
+    y = accelData.getYCollection()
+    z = accelData.getZCollection()
+    mod = accelData.getModCollection()
+    t = accelData.getTimestampCollection() 
     f2x = filter2(x)
     fx = filter(x)
     fy = filter(y)
@@ -220,7 +183,7 @@ def main(argv):
 #    plot2D([x,fx],[['x'],['fx']])
 
 #CALCULATE Velocity,distance
-    dt = calcDeltaT(t)
+    dt = accelData.getDeltaTCollection() 
 #    dts = dt[0:] / 1000.0f
     voffx = calcInteg(offx,dt)
     sx = calcInteg(voffx,dt)
