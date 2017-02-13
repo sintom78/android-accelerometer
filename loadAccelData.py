@@ -4,58 +4,12 @@ import getopt
 import sys
 from AccelData import AccelData
 from AccelData import AccelPoint
+import AccelCalculations as AccelCalc
 import matplotlib.pyplot as pyplot
 import matplotlib.figure as figure
 import matplotlib.cm as cm
-import scipy.signal as signal
 from mpl_toolkits.mplot3d import Axes3D
-import numpy
-from scipy import signal
 
-STEP=8
-
-def findCorrectionCoef(data):
-    CORRECTION_WINDOW=15 #num of samples
-    current = 0
-    coefIdx = 0
-    i = 0
-    while i < (len(data)-CORRECTION_WINDOW):
-        d = numpy.std(data[i:i+CORRECTION_WINDOW])
-        i=i+1
-        if current==0 or current>d:
-            current = d
-            coefIdx = i
-
-    coef = numpy.mean(data[coefIdx:coefIdx+CORRECTION_WINDOW])
-    return coef
-
-def filter2(data):
-    b, a = signal.iirfilter(8, Wn=0.2, btype="lowpass")
-    result = signal.lfilter(b,a,data)
-    return result
-
-def filter(data):
-    n = []
-    result = []
-    for d in data:
-        n.append(d)
-        if len(n) == STEP:
-           m = numpy.mean(n)
-           result.append(m)
-           del n[0]
-
-    return result
-
-def plotAccel(accelData):
-    pyplot.plot(accelData)
-    pyplot.grid()
-    pyplot.show()
-
-def addOffset(data,offset):
-    i = 0
-    while i < len(data):
-        data[i] = data[i] + offset
-        i=i+1
 
 def plot2D(data,figure=1):
     pyplot.figure(figure)
@@ -83,46 +37,6 @@ def plot3D(x,fx,y,fy,z,fz,mod,fmod):
     pyplot.show()
 
 
-def avgWithStep(data, step):
-    s = 0
-    avg = 0
-    current_avg = 0
-    averaged = []
-    deviation = []
-    dev = []
-    current_dev = 0
-    for d in data:
-        avg = avg + d
-        s = s + 1
-        averaged.append(current_avg)
-        deviation.append(current_dev)
-        dev.append(d)
-        if (s == step):
-            current_avg = avg/s
-            current_dev = numpy.var(dev)
-            dev = [] 
-            #averaged.append(avg/s)
-            avg = 0
-            s = 0
-
-    if (s > 0):
-        averaged.append(avg/s)
-
-    return averaged, deviation
-
-def calcInteg(a,dt):
-    i = 0
-    v = []
-    x = 0
-    while(i<len(dt)):
-        if i==0:
-            v.append(0)
-        else:
-            v.append(v[i-1]+(a[i]*dt[i]))
-        i=i+1
-
-    return v
-
 def main(argv):
     inputfile=''
     try:
@@ -147,50 +61,61 @@ def main(argv):
     accelData = AccelData()
     accelData.loadAccelData(inputfile)
     accelData.calcDeltasT()
-
+    OFFSET = 10
     x = accelData.getXCollection()
+    x = x[OFFSET:]
     y = accelData.getYCollection()
+    y = y[OFFSET:]
     z = accelData.getZCollection()
+    z = z[OFFSET:]
     mod = accelData.getModCollection()
-    t = accelData.getTimestampCollection() 
-    f2x = filter2(x)
-    fx = filter(x)
-    fy = filter(y)
-    fz = filter(z)
-    fmod = filter(mod)
-    f2mod = filter2(mod)
+    mod = mod[OFFSET:]
+    t = accelData.getTimestampCollection()
+    t = t[OFFSET:]
+    f2x = AccelCalc.filter2(x)
+    fx = AccelCalc.filter(x)
+    fy = AccelCalc.filter(y)
+    fz = AccelCalc.filter(z)
+    fmod = AccelCalc.filter(mod)
+    f2mod = AccelCalc.filter2(mod)
 
-    ax, devax = avgWithStep(x,8)
-    fax, devfax = avgWithStep(fx,8)
-    amod,devmod = avgWithStep(mod,8)
-    afmod,devafmod = avgWithStep(fmod,8)
+    ax, devax = AccelCalc.avgWithStep(x,8)
+    fax, devfax = AccelCalc.avgWithStep(fx,8)
+    amod,devmod = AccelCalc.avgWithStep(mod,8)
+    afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
 
 #CALCULATE CORRECTION
-    corrX = findCorrectionCoef(x)
+    corrX = AccelCalc.findCorrectionCoef(x)
     print "Correction  coefX:" + str(corrX)
-    corrMod = findCorrectionCoef(mod)
+    corrMod = AccelCalc.findCorrectionCoef(mod)
     print "Correction coefMod: " + str(corrMod)
     offx = x[0:]
-    addOffset(offx,-corrX)
+    AccelCalc.addOffset(offx,-corrX)
     offy = y[0:]
-    corrY=findCorrectionCoef(y)
-    addOffset(offy,-corrY)
+    corrY=AccelCalc.findCorrectionCoef(y)
+    AccelCalc.addOffset(offy,-corrY)
+    offz = z[0:]
+    corrZ=AccelCalc.findCorrectionCoef(z)
+    AccelCalc.addOffset(offz,-corrZ)
     offMod = mod[0:]
-    addOffset(offMod,-corrMod)
-    corrOffMod = findCorrectionCoef(offMod)
+    AccelCalc.addOffset(offMod,-corrMod)
+    corrOffMod = AccelCalc.findCorrectionCoef(offMod)
     print "Correction for offMod: " + str(corrOffMod)
 #    plot3D(x,fx,y,fy,z,fz,mod,fmod)
 #    plot2D([x,fx],[['x'],['fx']])
 
 #CALCULATE Velocity,distance
     dt = accelData.getDeltaTCollection() 
+    dt = dt[OFFSET:]
 #    dts = dt[0:] / 1000.0f
-    voffx = calcInteg(offx,dt)
-    sx = calcInteg(voffx,dt)
-    voffy = calcInteg(offy,dt)
-    sy = calcInteg(voffy,dt)
-    vmod = calcInteg(offMod,dt)
-    smod = calcInteg(vmod,dt)
+    voffx = AccelCalc.calcInteg(offx,dt)
+    sx = AccelCalc.calcInteg(voffx,dt)
+    voffy = AccelCalc.calcInteg(offy,dt)
+    sy = AccelCalc.calcInteg(voffy,dt)
+    voffz = AccelCalc.calcInteg(offz,dt)
+    sz = AccelCalc.calcInteg(voffz,dt)
+    vmod = AccelCalc.calcInteg(offMod,dt)
+    smod = AccelCalc.calcInteg(vmod,dt)
     dplot = [
                 {'data': [offMod,vmod,smod], 'legend': ['offMod','vmod','smod']},
                 {'data': [mod], 'legend': ['mod'] }
@@ -198,21 +123,27 @@ def main(argv):
     plot2D(dplot,1)
     pyplot.show()
 #
-#   dplot = [
-#               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
-#               {'data': [x], 'legend':['x']}
-#           ]
-#   plot2D(dplot,1)
-#   pyplot.show()
+    dplot = [
+               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
+               {'data': [x], 'legend':['x']}
+           ]
+    plot2D(dplot,1)
+    pyplot.show()
 #
-#   dplot = [
-#               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
-#               {'data': [y], 'legend':['y']}
-#           ]
-#   plot2D(dplot,1)
-#   pyplot.show()
+    dplot = [
+               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
+               {'data': [y], 'legend':['y']}
+           ]
+    plot2D(dplot,1)
+    pyplot.show()
  
-#MAKE PLOTS
+    dplot = [
+               {'data': [offz,voffz,sz], 'legend': ['offz','voffz','sz']},
+               {'data': [z], 'legend':['z']}
+           ]
+    plot2D(dplot,1)
+    pyplot.show()
+ #MAKE PLOTS
 #   dplot = [
 #       {'data': [ax,devax,x], 'legend': ['ax','devax','x']},
 #       {'data': [fax,devfax,fx], 'legend':  ['fax','devfax','fx']}
