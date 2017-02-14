@@ -35,15 +35,10 @@ def main(argv):
     accelData.calcDeltasT()
     OFFSET = 10
     x = accelData.getXCollection(OFFSET)
-#    x = x[OFFSET:]
     y = accelData.getYCollection(OFFSET)
-#    y = y[OFFSET:]
     z = accelData.getZCollection(OFFSET)
-#    z = z[OFFSET:]
     mod = accelData.getModCollection(OFFSET)
-#    mod = mod[OFFSET:]
     t = accelData.getTimestampCollection(OFFSET)
-#    t = t[OFFSET:]
     f2x = AccelCalc.filter2(x)
     fx = AccelCalc.filter(x)
     fy = AccelCalc.filter(y)
@@ -56,43 +51,11 @@ def main(argv):
     amod,devmod = AccelCalc.avgWithStep(mod,8)
     afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
 
-#CALCULATE CORRECTION
-    corrX = AccelCalc.findCorrectionCoef(x)
-    print "Correction  coefX:" + str(corrX)
-    corrMod = AccelCalc.findCorrectionCoef(mod)
-    print "Correction coefMod: " + str(corrMod)
-    offx = x[0:]
-    AccelCalc.addOffset(offx,-corrX)
-    offy = y[0:]
-    corrY=AccelCalc.findCorrectionCoef(y)
-    AccelCalc.addOffset(offy,-corrY)
-    offz = z[0:]
-    corrZ=AccelCalc.findCorrectionCoef(z)
-    AccelCalc.addOffset(offz,-corrZ)
-    offMod = mod[0:]
-    AccelCalc.addOffset(offMod,-corrMod)
-    corrOffMod = AccelCalc.findCorrectionCoef(offMod)
-    print "Correction for offMod: " + str(corrOffMod)
-#    plot3D(x,fx,y,fy,z,fz,mod,fmod)
-
 #CALCULATE Velocity,distance
-#    dt = accelData.getDeltaTCollection() 
-#    dt = dt[OFFSET:]
-#    dts = dt[0:] / 1000.0f
-#   voffx = AccelCalc.calcInteg(offx,dt)
-#   sx = AccelCalc.calcInteg(voffx,dt)
-#   voffy = AccelCalc.calcInteg(offy,dt)
-#   sy = AccelCalc.calcInteg(voffy,dt)
-#   voffz = AccelCalc.calcInteg(offz,dt)
-#   sz = AccelCalc.calcInteg(voffz,dt)
-#   vmod = AccelCalc.calcInteg(offMod,dt)
-#   smod = AccelCalc.calcInteg(vmod,dt)
     offAccelData = accelData.getCopyRange(OFFSET)
     offAccelData.unBias()
     vAccelData = offAccelData.getIntegratedBydT()
     sAccelData = vAccelData.getIntegratedBydT()
-    print str(sAccelData.accelData[10]) #[11].timestamp
-    print str(vAccelData.accelData[10])
 
     offMod = offAccelData.getModCollection()
     vmod = vAccelData.getModCollection()
