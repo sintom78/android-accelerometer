@@ -7,6 +7,7 @@ from AccelData import AccelPoint
 import AccelCalculations as AccelCalc
 from AccelPlot import plot2D
 from AccelPlot import plot3D
+import copy
 
 def main(argv):
     inputfile=''
@@ -73,25 +74,33 @@ def main(argv):
     corrOffMod = AccelCalc.findCorrectionCoef(offMod)
     print "Correction for offMod: " + str(corrOffMod)
 #    plot3D(x,fx,y,fy,z,fz,mod,fmod)
-#    plot2D([x,fx],[['x'],['fx']])
 
 #CALCULATE Velocity,distance
-    dt = accelData.getDeltaTCollection() 
-    dt = dt[OFFSET:]
+#    dt = accelData.getDeltaTCollection() 
+#    dt = dt[OFFSET:]
 #    dts = dt[0:] / 1000.0f
-    voffx = AccelCalc.calcInteg(offx,dt)
-    sx = AccelCalc.calcInteg(voffx,dt)
-    voffy = AccelCalc.calcInteg(offy,dt)
-    sy = AccelCalc.calcInteg(voffy,dt)
-    voffz = AccelCalc.calcInteg(offz,dt)
-    sz = AccelCalc.calcInteg(voffz,dt)
-    vmod = AccelCalc.calcInteg(offMod,dt)
-    smod = AccelCalc.calcInteg(vmod,dt)
+#   voffx = AccelCalc.calcInteg(offx,dt)
+#   sx = AccelCalc.calcInteg(voffx,dt)
+#   voffy = AccelCalc.calcInteg(offy,dt)
+#   sy = AccelCalc.calcInteg(voffy,dt)
+#   voffz = AccelCalc.calcInteg(offz,dt)
+#   sz = AccelCalc.calcInteg(voffz,dt)
+#   vmod = AccelCalc.calcInteg(offMod,dt)
+#   smod = AccelCalc.calcInteg(vmod,dt)
+    offAccelData = copy.deepcopy(accelData)
+    offAccelData.unBias()
+    vAccelData = offAccelData.getIntegratedBydT()
+    sAccelData = vAccelData.getIntegratedBydT()
+
+    offMod = offAccelData.getModCollection()
+    vmod = vAccelData.getModCollection()
+    smod = sAccelData.getModCollection()
+
     dplot = [
                 {'data': [offMod,vmod,smod], 'legend': ['offMod','vmod','smod']},
                 {'data': [mod], 'legend': ['mod'] }
             ]
-    plot2D(dplot,1,False)
+    plot2D(dplot,1) #,False)
 #
     dplot = [
                {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},

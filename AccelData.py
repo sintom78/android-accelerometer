@@ -2,6 +2,7 @@
 
 import xml.etree.ElementTree as ElementTree
 import numpy
+import AccelCalculations as AccelCalc
 
 def getFloat(num):
     return float(num.replace(',','.'))
@@ -32,6 +33,10 @@ class AccelPoint(object):
     def calcDeltaT(self, prevAccelPoint):
         self.deltaT = (self.timestamp - prevAccelPoint.timestamp) / 1000.0
 
+    def addOffset(self,x,y,z):
+        self.x += x
+        self.y += y
+        self.z += z
 
 class fakeCollection():
     items = []
@@ -49,33 +54,41 @@ class fakeCollection():
 
 class AccelData():
     """Collection of accelerometer points (AccelPoint classes)"""
-    accelData = []
-    duration = 0
 
-    def generateCollection(self,collection,getter):
+    def __init__(self):
+        self.accelData = []
+        self.duration = 0
+
+    def generateCollection(self,collection,getter,start=0,end=-1):
         c = []
-        for i in collection:
-            c.append(getter(i))
+        i = start;
+        if (end == -1):
+            end = len(collection)
+
+        while ((i<end) and (i < len(collection))):
+            c.append(getter(collection[i]))
+            i += 1
+        
         return c
 
-    def getXCollection(self):
+    def getXCollection(self,start=0,end=-1):
 #        x = fakeCollection(self.accelData, lambda accPoint: accPoint.x)
-        return self.generateCollection(self.accelData,lambda accP: accP.x)
+        return self.generateCollection(self.accelData,lambda accP: accP.x,start,end)
 
-    def getYCollection(self):
-        return self.generateCollection(self.accelData,lambda accP: accP.y)
+    def getYCollection(self,start=0,end=-1):
+        return self.generateCollection(self.accelData,lambda accP: accP.y,start,end)
 
-    def getZCollection(self):
-        return self.generateCollection(self.accelData,lambda accP: accP.z)
+    def getZCollection(self,start=0,end=-1):
+        return self.generateCollection(self.accelData,lambda accP: accP.z,start,end)
 
-    def getTimestampCollection(self):
-        return self.generateCollection(self.accelData,lambda accP: accP.timestamp)
+    def getTimestampCollection(self,start=0,end=-1):
+        return self.generateCollection(self.accelData,lambda accP: accP.timestamp,start,end)
 
-    def getModCollection(self):
-        return self.generateCollection(self.accelData,lambda accP: accP.mod)
+    def getModCollection(self,start=0,end=-1):
+        return self.generateCollection(self.accelData,lambda accP: accP.mod,start,end)
 
-    def getDeltaTCollection(self):
-        return self.generateCollection(self.accelData,lambda accP: accP.deltaT)
+    def getDeltaTCollection(self,start=0,end=-1):
+        return self.generateCollection(self.accelData,lambda accP: accP.deltaT,start,end)
 
     def loadAccelData(self,fileName):
         doc = ElementTree.parse(fileName)
@@ -105,4 +118,27 @@ class AccelData():
             self.accelData[i].calcDeltaT(self.accelData[i-1])
             i=i+1
 
+    def getIntegratedBydT(self):
+        newAccelData = AccelData()
+        deltaT = self.getDeltaTCollection()
+        tstamps = self.getTimestampCollection()
+        x = AccelCalc.calcInteg(self.getXCollection(), deltaT)
+        y = AccelCalc.calcInteg(self.getYCollection(), deltaT)
+        z = AccelCalc.calcInteg(self.getZCollection(), deltaT)
+        i = 0
+        while(i<len(x)):
+            item = AccelPoint(x[i],y[i],z[i],tstamps[i])
+            item.calcModule()
+            newAccelData.accelData.append(item)
+            i += 1
 
+        return newAccelData
+
+    def unBias(self):
+        offX = AccelCalc.findCorrectionCoef(self.getXCollection())
+        offY = AccelCalc.findCorrectionCoef(self.getYCollection())
+        offZ = AccelCalc.findCorrectionCoef(self.getZCollection())
+
+        for item in self.accelData:
+            item.addOffset(-offX,-offY,-offZ)
+            item.calcModule()
