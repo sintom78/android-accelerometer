@@ -34,16 +34,16 @@ def main(argv):
     accelData.loadAccelData(inputfile)
     accelData.calcDeltasT()
     OFFSET = 10
-    x = accelData.getXCollection()
-    x = x[OFFSET:]
-    y = accelData.getYCollection()
-    y = y[OFFSET:]
-    z = accelData.getZCollection()
-    z = z[OFFSET:]
-    mod = accelData.getModCollection()
-    mod = mod[OFFSET:]
-    t = accelData.getTimestampCollection()
-    t = t[OFFSET:]
+    x = accelData.getXCollection(OFFSET)
+#    x = x[OFFSET:]
+    y = accelData.getYCollection(OFFSET)
+#    y = y[OFFSET:]
+    z = accelData.getZCollection(OFFSET)
+#    z = z[OFFSET:]
+    mod = accelData.getModCollection(OFFSET)
+#    mod = mod[OFFSET:]
+    t = accelData.getTimestampCollection(OFFSET)
+#    t = t[OFFSET:]
     f2x = AccelCalc.filter2(x)
     fx = AccelCalc.filter(x)
     fy = AccelCalc.filter(y)
@@ -87,10 +87,12 @@ def main(argv):
 #   sz = AccelCalc.calcInteg(voffz,dt)
 #   vmod = AccelCalc.calcInteg(offMod,dt)
 #   smod = AccelCalc.calcInteg(vmod,dt)
-    offAccelData = copy.deepcopy(accelData)
+    offAccelData = accelData.getCopyRange(OFFSET)
     offAccelData.unBias()
     vAccelData = offAccelData.getIntegratedBydT()
     sAccelData = vAccelData.getIntegratedBydT()
+    print str(sAccelData.accelData[10]) #[11].timestamp
+    print str(vAccelData.accelData[10])
 
     offMod = offAccelData.getModCollection()
     vmod = vAccelData.getModCollection()
@@ -102,23 +104,23 @@ def main(argv):
             ]
     plot2D(dplot,1) #,False)
 #
-    dplot = [
-               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
-               {'data': [x], 'legend':['x']}
-           ]
-    plot2D(dplot,2)
+#    dplot = [
+#               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
+#               {'data': [x], 'legend':['x']}
+#           ]
+#    plot2D(dplot,2)
 #
-    dplot = [
-               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
-               {'data': [y], 'legend':['y']}
-           ]
-    plot2D(dplot,1)
+#    dplot = [
+#               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
+#               {'data': [y], 'legend':['y']}
+#           ]
+#    plot2D(dplot,1)
  
-    dplot = [
-               {'data': [offz,voffz,sz], 'legend': ['offz','voffz','sz']},
-               {'data': [z], 'legend':['z']}
-           ]
-    plot2D(dplot,1)
+#    dplot = [
+#               {'data': [offz,voffz,sz], 'legend': ['offz','voffz','sz']},
+#               {'data': [z], 'legend':['z']}
+#           ]
+#    plot2D(dplot,1)
  #MAKE PLOTS
 #   dplot = [
 #       {'data': [ax,devax,x], 'legend': ['ax','devax','x']},

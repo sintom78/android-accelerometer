@@ -2,30 +2,31 @@
 
 import xml.etree.ElementTree as ElementTree
 import numpy
+import copy
 import AccelCalculations as AccelCalc
+
 
 def getFloat(num):
     return float(num.replace(',','.'))
 
 
-
 class AccelPoint(object):
     """Represent acceleration in 3-D with timestamp"""
-
-    deltaT = 0
-    x = 0.0
-    y = 0.0
-    z = 0.0
-    mod = 0.0
-    deltaT = 0.0
-    timestamp = 0.0
 
     def __init__(self,x,y,z,timestamp):
         self.x = x
         self.y = y
         self.z = z
         self.timestamp = timestamp
+        self.deltaT = 0
+        self.mod = 0
 
+    def __str__(self):
+        string = "x: " + str(self.x) + " y: " + str(self.y) + " z: " + str(self.z)  
+        string += " mod: " + str(self.mod) + " tstamp: " + str(self.timestamp) + " dT: " + str(self.deltaT)
+
+        return string
+ 
     def calcModule(self):
         m = self.x**2 + self.y**2 + self.z**2
         self.mod = numpy.sqrt(m)
@@ -118,6 +119,17 @@ class AccelData():
             self.accelData[i].calcDeltaT(self.accelData[i-1])
             i=i+1
 
+    def getCopyRange(self, start=0,end=-1):
+        newAccelData = AccelData()
+        i=start
+        if (end<0):
+            end = 0
+        while (i<len(self.accelData)):
+            item = copy.deepcopy(self.accelData[i])
+            newAccelData.accelData.append(item)
+            i += 1
+        return newAccelData
+
     def getIntegratedBydT(self):
         newAccelData = AccelData()
         deltaT = self.getDeltaTCollection()
@@ -128,6 +140,7 @@ class AccelData():
         i = 0
         while(i<len(x)):
             item = AccelPoint(x[i],y[i],z[i],tstamps[i])
+            item.deltaT = deltaT[i]
             item.calcModule()
             newAccelData.accelData.append(item)
             i += 1
