@@ -60,7 +60,8 @@ class AccelData():
         self.accelData = []
         self.duration = 0
 
-    def generateCollection(self,collection,getter,start=0,end=-1):
+    def generateCollection(self,getter,start=0,end=-1):
+        collection = self.accelData
         c = []
         i = start;
         if (end == -1):
@@ -74,22 +75,22 @@ class AccelData():
 
     def getXCollection(self,start=0,end=-1):
 #        x = fakeCollection(self.accelData, lambda accPoint: accPoint.x)
-        return self.generateCollection(self.accelData,lambda accP: accP.x,start,end)
+        return self.generateCollection(lambda accP: accP.x,start,end)
 
     def getYCollection(self,start=0,end=-1):
-        return self.generateCollection(self.accelData,lambda accP: accP.y,start,end)
+        return self.generateCollection(lambda accP: accP.y,start,end)
 
     def getZCollection(self,start=0,end=-1):
-        return self.generateCollection(self.accelData,lambda accP: accP.z,start,end)
+        return self.generateCollection(lambda accP: accP.z,start,end)
 
     def getTimestampCollection(self,start=0,end=-1):
-        return self.generateCollection(self.accelData,lambda accP: accP.timestamp,start,end)
+        return self.generateCollection(lambda accP: accP.timestamp,start,end)
 
     def getModCollection(self,start=0,end=-1):
-        return self.generateCollection(self.accelData,lambda accP: accP.mod,start,end)
+        return self.generateCollection(lambda accP: accP.mod,start,end)
 
     def getDeltaTCollection(self,start=0,end=-1):
-        return self.generateCollection(self.accelData,lambda accP: accP.deltaT,start,end)
+        return self.generateCollection(lambda accP: accP.deltaT,start,end)
 
     def loadAccelData(self,fileName):
         doc = ElementTree.parse(fileName)
@@ -111,7 +112,7 @@ class AccelData():
 
         if len(self.accelData) > 0:
             self.duration = (self.accelData[len(self.accelData)-1].timestamp - self.accelData[0].timestamp) / 1000.0
-            print "Duration: " + str(self.duration)
+            print "Duration: " + str(self.duration) + " [s]"
 
     def calcDeltasT(self):
         i = 1
