@@ -156,3 +156,15 @@ class AccelData():
         for item in self.accelData:
             item.addOffset(-offX,-offY,-offZ)
             item.calcModule()
+
+    def applyFilter(self, filter):
+        x = filter(self.getXCollection())
+        y = filter(Self.getYCollection())
+        z = filter(self.getZCollection())
+        self.accelData.x = x
+        self.accelData.y = y
+        self.accelData.z = z
+        #TODO: what to do with timestamps? ho to "aligne them to new x,y,z collections
+        for i in accelData:
+            i.calcModule()
+  

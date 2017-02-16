@@ -9,8 +9,39 @@ from AccelPlot import plot2D
 from AccelPlot import plot3D
 import copy
 
-def main(argv):
-    inputfile=''
+#GLOBALS
+inputfile=''
+
+def plotSpeedVelocity(collection, getter, offset):
+    D = getter(collection)
+    offAccelData = collection.getCopyRange(offset)
+    offAccelData.unBias()
+    vAccelData = offAccelData.getIntegratedBydT()
+    sAccelData = vAccelData.getIntegratedBydT()
+ 
+    offD = getter(offAccelData)
+    vD = getter(vAccelData)
+    sD = getter(sAccelData)
+    dplot = [
+                {'data': [offD,vD,sD], 'legend': ['offset','V','S']},
+                {'data': [D], 'legend': ['original'] }
+            ]
+    plot2D(dplot,1) 
+
+
+def plotSpeedVelocityModule(accelData, offset):
+    plotSpeedVelocity(accelData,lambda accD: accD.getModCollection(),offset)
+
+def plotSpeedVelocityX(accelData, offset):
+    plotSpeedVelocity(accelData,lambda accD: accD.getXCollection(),offset)
+
+def plotSpeedVelocityY(accelData, offset):
+    plotSpeedVelocity(accelData,lambda accD: accD.getYCollection(),offset)
+
+def plotSpeedVelocityZ(accelData, offset):
+    plotSpeedVelocity(accelData,lambda accD: accD.getZCollection(),offset)
+
+def parseArgs(argv):
     try:
         opts,args = getopt.getopt(argv,"hi:")
     except getopt.GetoptError: 
@@ -25,13 +56,17 @@ def main(argv):
             print '-i <inputfile.xml>'
             sys.exit(0)
         elif opt == '-i':
-           inputfile = arg
+           globals()['inputfile'] = arg
         else:
            print 'no input file'
            sys.exit(2)
 
+
+def main(argv):
+    parseArgs(argv)
+
     accelData = AccelData()
-    accelData.loadAccelData(inputfile)
+    accelData.loadAccelData(globals()['inputfile'])
     accelData.calcDeltasT()
     OFFSET = 10
     x = accelData.getXCollection(OFFSET)
@@ -51,27 +86,16 @@ def main(argv):
     amod,devmod = AccelCalc.avgWithStep(mod,8)
     afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
 
-#CALCULATE Velocity,distance
-    offAccelData = accelData.getCopyRange(OFFSET)
-    offAccelData.unBias()
-    vAccelData = offAccelData.getIntegratedBydT()
-    sAccelData = vAccelData.getIntegratedBydT()
+    plotSpeedVelocityModule(accelData,OFFSET)
+    plotSpeedVelocityX(accelData,OFFSET)
+    plotSpeedVelocityY(accelData,OFFSET)
+    plotSpeedVelocityZ(accelData,OFFSET)
 
-    offMod = offAccelData.getModCollection()
-    vmod = vAccelData.getModCollection()
-    smod = sAccelData.getModCollection()
-
-    dplot = [
-                {'data': [offMod,vmod,smod], 'legend': ['offMod','vmod','smod']},
-                {'data': [mod], 'legend': ['mod'] }
-            ]
-    plot2D(dplot,1) #,False)
-#
-#    dplot = [
-#               {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
-#               {'data': [x], 'legend':['x']}
-#           ]
-#    plot2D(dplot,2)
+#   dplot = [
+#              {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
+#              {'data': [x], 'legend':['x']}
+#          ]
+#   plot2D(dplot,2)
 #
 #    dplot = [
 #               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
