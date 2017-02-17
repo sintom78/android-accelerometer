@@ -2,3 +2,5 @@
 *.ods
 *.pyc
 *.swp
+AndroidApp/build
+AndroidApp/app/build
