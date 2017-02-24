@@ -2,7 +2,7 @@ import numpy
 import scipy.signal as signal
 
 def findCorrectionCoef(data):
-    CORRECTION_WINDOW=15 #num of samples
+    CORRECTION_WINDOW=25 #num of samples
     current = 0
     coefIdx = 0
     i = 0
@@ -16,10 +16,16 @@ def findCorrectionCoef(data):
     coef = numpy.mean(data[coefIdx:coefIdx+CORRECTION_WINDOW])
     return coef
 
-def filter2(data):
+def filterL(data):
     b, a = signal.iirfilter(8, Wn=0.2, btype="lowpass")
     result = signal.lfilter(b,a,data)
     return result
+
+def filterH(data):
+    b, a = signal.iirfilter(8, Wn=0.2, btype="highpass")
+    result = signal.lfilter(b,a,data)
+    return result
+
 
 def filter(data, STEP=8):
     n = []
