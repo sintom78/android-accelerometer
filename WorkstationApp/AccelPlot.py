@@ -3,7 +3,7 @@ import matplotlib.figure as figure
 import matplotlib.cm as cm
 from mpl_toolkits.mplot3d import Axes3D
 
-def plot2D(data,figure=1,show=True):
+def plot2D(data,figure=1,title="",show=True):
     pyplot.figure(figure)
     n = 0
     if (len(data) == 2):
@@ -17,10 +17,12 @@ def plot2D(data,figure=1,show=True):
         for dd in d['data']:
             pyplot.plot(dd)
 
+        pyplot.grid()
         pyplot.legend(d['legend'])
         n=n+1
         sb=sb+1
 
+    pyplot.title(title)
     if (show == True):
         pyplot.show()
 
