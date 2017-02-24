@@ -20,6 +20,9 @@ class AccelPoint(object):
         self.timestamp = timestamp
         self.deltaT = 0
         self.mod = 0
+        self.pitch = 0    #rotation on Y (theta)
+        self.yaw = 0      #rotation on Z (gamma)
+        self.roll = 0     #rotation on X (phi)
 
     def __str__(self):
         string = "x: " + str(self.x) + " y: " + str(self.y) + " z: " + str(self.z)  
@@ -27,6 +30,13 @@ class AccelPoint(object):
 
         return string
  
+    def calcSphereCoordinates(self):
+        tan_phi_xyz = self.y / self.z
+        tan_theta_xyz = -self.x / (numpy.sqrt(self.y**2 + self.z**2))
+        self.roll = numpy.arctan(tan_phi_xyz)
+        self.pitch = numpy.arctan(tan_theta_xyz)
+        self.yaw = 0 #TODO
+
     def calcModule(self):
         m = self.x**2 + self.y**2 + self.z**2
         self.mod = numpy.sqrt(m)
@@ -34,10 +44,12 @@ class AccelPoint(object):
     def calcDeltaT(self, prevAccelPoint):
         self.deltaT = (self.timestamp - prevAccelPoint.timestamp) / 1000.0
 
-    def addOffset(self,x,y,z):
+    def addOffset(self,x=0,y=0,z=0,mod=0):
         self.x += x
         self.y += y
         self.z += z
+        self.mod += mod
+        #self.mod = abs(self.mod)
 
 class fakeCollection():
     items = []
@@ -59,6 +71,7 @@ class AccelData():
     def __init__(self):
         self.accelData = []
         self.duration = 0
+        self.modOffset = 0
 
     def generateCollection(self,getter,start=0,end=-1):
         collection = self.accelData
@@ -118,6 +131,10 @@ class AccelData():
         i = 1
         while i<len(self.accelData):
             self.accelData[i].calcDeltaT(self.accelData[i-1])
+            if self.accelData[i].deltaT > 10:
+                print "Big deltaT: " + str(self.accelData[i].deltaT) + " at i="+str(i)
+                print "tstamp1=" + str(self.accelData[i-1].timestamp) 
+                print "tstamp2=" + str(self.accelData[i].timestamp)
             i=i+1
 
     def getCopyRange(self, start=0,end=-1):
@@ -131,40 +148,89 @@ class AccelData():
             i += 1
         return newAccelData
 
-    def getIntegratedBydT(self):
+    def printBigDelta(self,collection=[]):
+        i=1
+        if len(collection)==0:
+            collection = self.accelData
+
+        cdelta = lambda x1,x2: x2-x1 
+        gX = lambda n: collection[n].x
+        gY = lambda n: collection[n].y
+        gZ = lambda n: collection[n].z
+        gMod = lambda n: collection[n].mod
+        gDT = lambda n: collection[n].deltaT
+        while (i<len(collection)):
+           dMod = cdelta(gMod(i-1),gMod(i))
+           #print dx
+           if dMod>10:
+               print "Huge dMod:" + str(dMod)
+               print "x1=" + str(gX(i-1)) + " x2="  + str(gX(i))
+               print "y1=" + str(gY(i-1)) + " y2="  + str(gY(i))
+               print "z1=" + str(gZ(i-1)) + " x2="  + str(gZ(i))
+               print "mod1=" + str(gMod(i-1)) + " mod2="  + str(gMod(i))
+               print "dT1=" +str(gDT(i-1)) + " dT2=" + str(gDT(i))
+
+           i += 1
+
+    def getIntegratedBydT(self,recalcMod=True):
         newAccelData = AccelData()
+        newAccelData.modOffset = self.modOffset
         deltaT = self.getDeltaTCollection()
         tstamps = self.getTimestampCollection()
         x = AccelCalc.calcInteg(self.getXCollection(), deltaT)
         y = AccelCalc.calcInteg(self.getYCollection(), deltaT)
         z = AccelCalc.calcInteg(self.getZCollection(), deltaT)
+        if not recalcMod:
+            mod = AccelCalc.calcInteg(self.getModCollection(), deltaT)
+
         i = 0
         while(i<len(x)):
             item = AccelPoint(x[i],y[i],z[i],tstamps[i])
             item.deltaT = deltaT[i]
-            item.calcModule()
+            if recalcMod:
+                item.calcModule()
+            else:
+                item.mod = mod[i]
+
             newAccelData.accelData.append(item)
             i += 1
 
         return newAccelData
 
-    def unBias(self):
+    def unBiasMod(self):
+        #print self.modOffset
+        for item in self.accelData:
+            item.addOffset(mod=-self.modOffset)
+        
+
+    def unBias(self, recalcMod=True):
         offX = AccelCalc.findCorrectionCoef(self.getXCollection())
         offY = AccelCalc.findCorrectionCoef(self.getYCollection())
         offZ = AccelCalc.findCorrectionCoef(self.getZCollection())
+        self.modOffset = AccelCalc.findCorrectionCoef(self.getModCollection())
+        #print self.modOffset
 
         for item in self.accelData:
-            item.addOffset(-offX,-offY,-offZ)
-            item.calcModule()
+            item.addOffset(-offX,-offY,-offZ,-self.modOffset)
+            if recalcMod:
+                item.calcModule()
 
     def applyFilter(self, filter):
         x = filter(self.getXCollection())
-        y = filter(Self.getYCollection())
+        y = filter(self.getYCollection())
         z = filter(self.getZCollection())
-        self.accelData.x = x
-        self.accelData.y = y
-        self.accelData.z = z
+        i = 0
+#        acclD = copy.deepcopy(self.accelData)
+#        self.accelData = []
+        while(i<len(x) and i<len(y) and i<len(z)):
+            item = AccelPoint(x[i],y[i],z[i],self.accelData[i].timestamp)
+            self.accelData[i].x = x[i]
+            self.accelData[i].y = y[i]
+            self.accelData[i].z = z[i]
+            i += 1
+
+        del self.accelData[i:len(self.accelData)]
         #TODO: what to do with timestamps? ho to "aligne them to new x,y,z collections
-        for i in accelData:
+        for i in self.accelData:
             i.calcModule()
   

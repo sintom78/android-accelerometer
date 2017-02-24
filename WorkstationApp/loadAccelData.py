@@ -12,34 +12,45 @@ import copy
 #GLOBALS
 inputfile=''
 
-def plotSpeedVelocity(collection, getter, offset):
+def plotSpeedVelocity(title,collection, getter, offset=0,unbias=True):
     D = getter(collection)
-    offAccelData = collection.getCopyRange(offset)
-    offAccelData.unBias()
-    vAccelData = offAccelData.getIntegratedBydT()
-    sAccelData = vAccelData.getIntegratedBydT()
- 
+    offAccelData = collection.getCopyRange() #ioffset)
+    if unbias:
+        offAccelData.unBias()
     offD = getter(offAccelData)
+    vAccelData = offAccelData.getIntegratedBydT()
+    vAccelData.printBigDelta()
+#    vAccelData.unBiasMod()
+    sAccelData = vAccelData.getIntegratedBydT()
+#    sAccelData.unBiasMod()
     vD = getter(vAccelData)
     sD = getter(sAccelData)
     dplot = [
-                {'data': [offD,vD,sD], 'legend': ['offset','V','S']},
-                {'data': [D], 'legend': ['original'] }
+                {'data': [offD,vD,D], 'legend': ['offset','V','Orig']},
+                {'data': [sD], 'legend': ['Distance'] }
             ]
-    plot2D(dplot,1) 
+    plot2D(dplot,1,title) 
 
 
 def plotSpeedVelocityModule(accelData, offset):
-    plotSpeedVelocity(accelData,lambda accD: accD.getModCollection(),offset)
+    plotSpeedVelocity("SpeedVelocity Module",accelData,lambda accD: accD.getModCollection(),offset)
 
 def plotSpeedVelocityX(accelData, offset):
-    plotSpeedVelocity(accelData,lambda accD: accD.getXCollection(),offset)
+    plotSpeedVelocity("Speed Velocity X",accelData,lambda accD: accD.getXCollection(),offset)
 
 def plotSpeedVelocityY(accelData, offset):
-    plotSpeedVelocity(accelData,lambda accD: accD.getYCollection(),offset)
+    plotSpeedVelocity("Speed Velocity Y",accelData,lambda accD: accD.getYCollection(),offset)
 
 def plotSpeedVelocityZ(accelData, offset):
-    plotSpeedVelocity(accelData,lambda accD: accD.getZCollection(),offset)
+    plotSpeedVelocity("Speed Velocity Z",accelData,lambda accD: accD.getZCollection(),offset)
+
+def plotSVFilteredMod(accelData, OFFSET):
+    accData = accelData.getCopyRange()
+    accData.applyFilter(AccelCalc.filterH)
+    #accData.applyFilter(AccelCalc.filterL)
+    accData = accData.getCopyRange(60)
+    plotSpeedVelocity("Filtered SV Mod",accData,lambda accD: accD.getModCollection(),0,False)
+
 
 def parseArgs(argv):
     try:
@@ -74,53 +85,18 @@ def main(argv):
     z = accelData.getZCollection(OFFSET)
     mod = accelData.getModCollection(OFFSET)
     t = accelData.getTimestampCollection(OFFSET)
-    f2x = AccelCalc.filter2(x)
-    fx = AccelCalc.filter(x)
-    fy = AccelCalc.filter(y)
-    fz = AccelCalc.filter(z)
-    fmod = AccelCalc.filter(mod)
-    f2mod = AccelCalc.filter2(mod)
 
-    ax, devax = AccelCalc.avgWithStep(x,8)
-    fax, devfax = AccelCalc.avgWithStep(fx,8)
-    amod,devmod = AccelCalc.avgWithStep(mod,8)
-    afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
+#    ax, devax = AccelCalc.avgWithStep(x,8)
+#    fax, devfax = AccelCalc.avgWithStep(fx,8)
+#    amod,devmod = AccelCalc.avgWithStep(mod,8)
+#    afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
 
     plotSpeedVelocityModule(accelData,OFFSET)
-    plotSpeedVelocityX(accelData,OFFSET)
-    plotSpeedVelocityY(accelData,OFFSET)
-    plotSpeedVelocityZ(accelData,OFFSET)
+    plotSVFilteredMod(accelData, OFFSET)
+#    plotSpeedVelocityX(accelData,OFFSET)
+#    plotSpeedVelocityY(accelData,OFFSET)
+#    plotSpeedVelocityZ(accelData,OFFSET)
 
-#   dplot = [
-#              {'data': [offx,voffx,sx], 'legend': ['offx','voffx','sx']},
-#              {'data': [x], 'legend':['x']}
-#          ]
-#   plot2D(dplot,2)
-#
-#    dplot = [
-#               {'data': [offy,voffy,sy], 'legend': ['offy','voffy','sy']},
-#               {'data': [y], 'legend':['y']}
-#           ]
-#    plot2D(dplot,1)
- 
-#    dplot = [
-#               {'data': [offz,voffz,sz], 'legend': ['offz','voffz','sz']},
-#               {'data': [z], 'legend':['z']}
-#           ]
-#    plot2D(dplot,1)
- #MAKE PLOTS
-#   dplot = [
-#       {'data': [ax,devax,x], 'legend': ['ax','devax','x']},
-#       {'data': [fax,devfax,fx], 'legend':  ['fax','devfax','fx']}
-#       ]
-#
-#   plot2D(dplot,1)
-#   pyplot.show()
-#   dplot = [ {'data': [f2x,x,fx], 'legend': ['f2x','x','fx']},
-#             {'data': [f2mod,mod,fmod], 'legend': ['f2mod','mod','fmod']}
-#           ]
-#   plot2D(dplot,1)
-#   pyplot.show()
     
 if __name__=="__main__":
     main(sys.argv[1:])
