@@ -100,6 +100,7 @@ public class MainActivity extends AppCompatActivity
             //updateLabels();
         }
         enableDrawing=false;
+        super.onDestroy();
     }
 
     @Override
