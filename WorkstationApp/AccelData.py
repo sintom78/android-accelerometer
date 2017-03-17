@@ -5,6 +5,8 @@ import numpy
 import copy
 import AccelCalculations as AccelCalc
 
+#WARN_DELTA_T: treshold for dletaT warning 
+WARN_DELTA_T = 0.5
 
 def getFloat(num):
     return float(num.replace(',','.'))
@@ -72,6 +74,7 @@ class AccelData():
         self.accelData = []
         self.duration = 0
         self.modOffset = 0
+        self.maxDeltaT = 0
 
     def generateCollection(self,getter,start=0,end=-1):
         collection = self.accelData
@@ -131,11 +134,16 @@ class AccelData():
         i = 1
         while i<len(self.accelData):
             self.accelData[i].calcDeltaT(self.accelData[i-1])
-            if self.accelData[i].deltaT > 10:
-                print "Big deltaT: " + str(self.accelData[i].deltaT) + " at i="+str(i)
-                print "tstamp1=" + str(self.accelData[i-1].timestamp) 
-                print "tstamp2=" + str(self.accelData[i].timestamp)
+            deltaT = self.accelData[i].deltaT
+            if self.maxDeltaT < deltaT:
+                self.maxDeltaT = deltaT
+
+            if deltaT > WARN_DELTA_T or deltaT <=0:
+                print "Irrational deltaT: " + str(deltaT) + " at i="+str(i)
+#                print "tstamp1=" + str(self.accelData[i-1].timestamp) 
+#                print "tstamp2=" + str(self.accelData[i].timestamp)
             i=i+1
+        print "Max DeltaT: " + str(self.maxDeltaT)
 
     def getCopyRange(self, start=0,end=-1):
         newAccelData = AccelData()
