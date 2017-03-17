@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.example.tomek.myapplication.MainActivity">
+<LinearLayout
+    android:id="@+id/accelValuesList"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+    <TextView
+        android:id="@+id/AccValuesLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Accelerometer Values:"
+        android:textSize="4mm"/>
+    <TextView
+        android:id="@+id/accelX"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="X:" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:id="@+id/graphX"
+        android:layout_width="match_parent"
+        android:layout_height="15mm" />
+    <TextView
+        android:id="@+id/accelY"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Y:" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:id="@+id/graphY"
+        android:layout_width="match_parent"
+        android:layout_height="15mm" />
+    <TextView
+        android:id="@+id/accelZ"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Z:" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:id="@+id/graphZ"
+        android:layout_width="match_parent"
+        android:layout_height="15mm" />
+    <CheckBox
+        android:id="@+id/UseLinearAccel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Use linear accelerometer"/>
+</LinearLayout>
+    <Button
+        android:layout_marginTop="5mm"
+        android:id="@+id/StartStopBtn"
+        android:text="Start"
+        android:layout_below="@id/accelValuesList"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/recordingOnOffLabel"
+        android:layout_toRightOf="@id/StartStopBtn"
+        android:layout_alignBaseline="@id/StartStopBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="2mm"
+        android:text="Recording OFF"/>
+</RelativeLayout>
