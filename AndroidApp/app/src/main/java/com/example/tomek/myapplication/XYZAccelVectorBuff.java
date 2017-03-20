@@ -1,6 +1,7 @@
 package com.example.tomek.myapplication;
 
 import java.io.FileWriter;
+import java.util.concurrent.locks.ReentrantLock;
 
 class XYZAccelVectorBuff {
     private XYZAccelVector buff1[];
@@ -10,9 +11,12 @@ class XYZAccelVectorBuff {
     private int buf_elements;
     private int current_element;
     private FileWriter fileWriter;
+    private ReentrantLock lock;
 
     public XYZAccelVectorBuff(int elements, FileWriter fw)
     {
+        lock = new ReentrantLock();
+
         buff1 = new XYZAccelVector[elements];
         buff2 = new XYZAccelVector[elements];
         currentBuff = buff1;
@@ -66,12 +70,17 @@ class XYZAccelVectorBuff {
 
     public void addAccelVector(XYZAccelVector vec)
     {
-       currentBuff[current_element] = vec;
-       current_element++;
-       if (current_element==buf_elements) {
-           swapBuff();
-           flushBackBuff();
-       }
+        lock.lock();
+        try {
+            currentBuff[current_element] = vec;
+            current_element++;
+            if (current_element == buf_elements) {
+                swapBuff();
+                flushBackBuff();
+            }
+        } finally {
+            lock.unlock();
+        }
     }
         
     public void done() {

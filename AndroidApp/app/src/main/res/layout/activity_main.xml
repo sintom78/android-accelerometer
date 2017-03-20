@@ -25,7 +25,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="X:" />
-    <ImageView
+    <LinearLayout
+        android:orientation="vertical"
         android:id="@+id/graphX"
         android:layout_width="match_parent"
         android:layout_height="15mm" />
@@ -34,7 +35,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Y:" />
-    <ImageView
+    <LinearLayout
+        android:orientation="vertical"
         android:id="@+id/graphY"
         android:layout_width="match_parent"
         android:layout_height="15mm" />
@@ -43,7 +45,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Z:" />
-    <ImageView
+    <LinearLayout
+        android:orientation="vertical"
         android:id="@+id/graphZ"
         android:layout_width="match_parent"
         android:layout_height="15mm" />

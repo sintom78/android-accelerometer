@@ -1,28 +1,20 @@
 package com.example.tomek.myapplication;
 
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.hardware.SensorEvent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.os.Environment;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.hardware.Sensor;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.content.Context;
 
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.appindexing.Thing;
-import com.google.android.gms.common.api.GoogleApiClient;
-
 public class MainActivity extends AppCompatActivity
-        implements View.OnClickListener,SensorEventListener {
+        implements View.OnClickListener, SensorEventListener {
     private static int Scale = 20;
 
     //UI
@@ -34,9 +26,9 @@ public class MainActivity extends AppCompatActivity
     private Button StartStopButton;
     private Boolean isRecording;
     private Boolean enableDrawing;
-    private ImageView imgX;
-    private ImageView imgY;
-    private ImageView imgZ;
+    private LinearLayout imgX;
+    private LinearLayout imgY;
+    private LinearLayout imgZ;
     private MyChart chartX;
     private MyChart chartY;
     private MyChart chartZ;
@@ -65,12 +57,15 @@ public class MainActivity extends AppCompatActivity
         accelY.setText(String.format("Y: %1$.3f", .0f));
         accelZ.setText(String.format("Z: %1$.3f", .0f));
 
-        imgX = (ImageView) findViewById(R.id.graphX);
-        imgY = (ImageView) findViewById(R.id.graphY);
-        imgZ = (ImageView) findViewById(R.id.graphZ);
-        chartX = new MyChart(imgX);
-        chartY = new MyChart(imgY);
-        chartZ = new MyChart(imgZ);
+        imgX = (LinearLayout) findViewById(R.id.graphX);
+        imgY = (LinearLayout) findViewById(R.id.graphY);
+        imgZ = (LinearLayout) findViewById(R.id.graphZ);
+        chartX = new MyChart(this);
+        imgX.addView(chartX);
+        chartY = new MyChart(this);
+        imgY.addView(chartY);
+        chartZ = new MyChart(this);
+        imgZ.addView(chartZ);
 
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
     }
@@ -82,14 +77,21 @@ public class MainActivity extends AppCompatActivity
             startStopRecording();
             updateLabels();
         }*/
-        enableDrawing=false;
+        enableDrawing = false;
+        if ((myStorage != null) && (isRecording)) {
+            myStorage.pushMessage("onStop:DrawingDisabled",
+                    System.currentTimeMillis());
+        }
         super.onStop();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        enableDrawing=true;
+        enableDrawing = true;
+        if ((myStorage != null) && isRecording)
+        myStorage.pushMessage("onResume:DrawingEnabled",
+                System.currentTimeMillis());
     }
 
     @Override
@@ -99,14 +101,14 @@ public class MainActivity extends AppCompatActivity
             startStopRecording();
             //updateLabels();
         }
-        enableDrawing=false;
+        enableDrawing = false;
         super.onDestroy();
     }
 
     @Override
     public void onClick(View view) {
         isRecording = !isRecording;
-        enableDrawing=isRecording;
+        enableDrawing = isRecording;
         updateLabels();
         startStopRecording();
     }
@@ -126,14 +128,15 @@ public class MainActivity extends AppCompatActivity
         if (isRecording) {
             mSensor = getAccelerometer();
             myStorage = new MyStorage(mSensor.getType());
+            myStorage.pushMessage("New recording started", System.currentTimeMillis());
             mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
         } else {
             mSensorManager.unregisterListener(this);
-            if (myStorage!=null) {
+            if (myStorage != null) {
+                myStorage.pushMessage("Recording done-finalizing", System.currentTimeMillis());
                 myStorage.done();
             }
-            //closeFile();
         }
     }
 
@@ -153,22 +156,31 @@ public class MainActivity extends AppCompatActivity
         float y = sensorEvent.values[1];
         float z = sensorEvent.values[2];
 
-        accelX.setText("X: "+String.valueOf(x));
-        accelY.setText("Y: "+String.valueOf(y));
-        accelZ.setText("Z: "+String.valueOf(z));
+        int tasks = myStorage.pushAccelVector(x,y,z);
+        accelZ.setText("Tasks: "+String.valueOf(tasks));
+        updateUI(x,y,z);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    public void updateUI(float x, float y, float z) {
         chartX.addValue(x);
         chartY.addValue(y);
         chartZ.addValue(z);
-        myStorage.pushAccelVector(x,y,z);
+        accelX.setText("X: " + String.valueOf(x));
+        accelY.setText("Y: " + String.valueOf(y));
+        //accelZ.setText("Z: " + String.valueOf(z));
         draw();
     }
 
-
     private void draw() {
         if (enableDrawing) {
-            chartX.draw();
-            chartY.draw();
-            chartZ.draw();
+            chartX.invalidate();
+            chartY.invalidate();
+            chartZ.invalidate();
         }
     }
 
@@ -176,4 +188,5 @@ public class MainActivity extends AppCompatActivity
     public void onAccuracyChanged(Sensor sensor, int i) {
         //not intrested
     }
+
 }

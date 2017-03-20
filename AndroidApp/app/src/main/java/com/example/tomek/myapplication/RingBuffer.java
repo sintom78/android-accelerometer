@@ -18,16 +18,30 @@ public class RingBuffer {
     }
 
     public void pushElement(float value) {
-        elements[head] = value;
-        head++;
-        if (head==size) {
-            head = 0;
-        }
-        if (head==tail) {
-            tail++;
-            if (tail==size) {
-                tail = 0;
+        if (elements.length > 0) {
+            elements[head] = value;
+            head++;
+            if (head == size) {
+                head = 0;
             }
+            if (head == tail) {
+                tail++;
+                if (tail == size) {
+                    tail = 0;
+                }
+            }
+        }
+    }
+
+    public float getCurrentValue() {
+        if (elements.length > 0) {
+            if (head > 0) {
+                return elements[head - 1];
+            } else {
+                return elements[size - 1];
+            }
+        } else {
+            return 0;
         }
     }
 
@@ -42,15 +56,19 @@ public class RingBuffer {
     }
 
     public float getElementByIdx(int index) {
-        if (index >= size) {
-            throw new IndexOutOfBoundsException();
-        }
+        if (elements.length > 0) {
+            if (index >= size) {
+                throw new IndexOutOfBoundsException();
+            }
 
-        int idx = tail + index;
-        if (idx >= size) {
-            idx -= size;
-        }
+            int idx = tail + index;
+            if (idx >= size) {
+                idx -= size;
+            }
 
-        return  elements[idx];
+            return elements[idx];
+        } else {
+            return 0;
+        }
     }
 }

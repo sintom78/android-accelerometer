@@ -1,11 +1,12 @@
 package com.example.tomek.myapplication;
 
 import android.hardware.Sensor;
+import android.os.AsyncTask;
 import android.os.Environment;
-import android.os.PatternMatcher;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by tomek on 12/13/16.
@@ -13,18 +14,23 @@ import java.io.FileWriter;
 
 public class MyStorage {
     static private String fileDir;
+    static private int NumOfElements = 1000;
     static private int FileLimitsPerDay = 100;
     static private String fileNameFormat="%d-%d-%d_accelerometer%d.xml";
+    private ReentrantLock l;
     private String fileName;
     private File file;
     private FileWriter fileWriter;
     private boolean mediaMounted;
     private XYZAccelVectorBuff xyzAccelBuff;
     private int SensorType;
+    private int noTasks;
 
     public MyStorage(int sensorType) {
         //mediaMounted = true;
         //fileDir="./";
+        noTasks = 0;
+        l = new ReentrantLock();
         SensorType = sensorType;
         mediaMounted = isExternalStorageWritable();
         File f = Environment.getExternalStorageDirectory();
@@ -42,12 +48,13 @@ public class MyStorage {
         return false;
     }
 
-    public void pushAccelVector(float x, float y, float z) {
-        if (xyzAccelBuff == null ) {
-            xyzAccelBuff = new XYZAccelVectorBuff(1000, fileWriter);
-        }
-        xyzAccelBuff.addAccelVector( new XYZAccelVector( x,y,z,System.currentTimeMillis() ) );
+    public int pushAccelVector(float x, float y, float z) {
+        return this.pushAccelVectorTask( new XYZAccelVector( x,y,z,System.currentTimeMillis() ) );
+    }
 
+    public int pushAccelVectorTask(XYZAccelVector xyzAccelVector) {
+        new NewXYZHandler().execute(xyzAccelVector);
+        return ++noTasks; //not sync as not important
     }
 
     public void flushAccelVectors() {
@@ -61,7 +68,21 @@ public class MyStorage {
                 fileWriter.write("</AccelItems>");
                 fileWriter.flush();
             } catch (Exception e) {
+                //TODO: handle?
             }
+        }
+    }
+
+    public void pushMessage(String message, long timestamp) {
+        if (fileWriter == null)
+            return;
+
+        try {
+            String msg = String.format("<Message msg=\"%s\" timestamp=\"%d\"/>",
+                    message, timestamp);
+            fileWriter.write(msg);
+        } catch (Exception e) {
+            //TODO: handle?
         }
     }
 
@@ -72,6 +93,14 @@ public class MyStorage {
 
     public String getFileName() {
         return fileName;
+    }
+
+    private void enableXYZAccelVector() {
+        l.lock();
+        if (xyzAccelBuff == null ) {
+            xyzAccelBuff = new XYZAccelVectorBuff(NumOfElements, fileWriter);
+        }
+        l.unlock();
     }
 
     private void writeXMLHeader() {
@@ -115,6 +144,7 @@ public class MyStorage {
     private void closeFile() {
         if (fileWriter!=null) {
             try {
+                fileWriter.flush();
                 fileWriter.close();
             } catch (Exception e) {
             }
@@ -128,6 +158,19 @@ public class MyStorage {
             } catch(Exception e) {
                 //TODO
             }
+        }
+    }
+
+    private class NewXYZHandler extends AsyncTask<XYZAccelVector, Void, Void> {
+        @Override
+        protected Void doInBackground(XYZAccelVector... xyzAccelVectors) {
+            int s = xyzAccelVectors.length;
+            for(int i=0; i<s; i++) {
+                enableXYZAccelVector();
+                xyzAccelBuff.addAccelVector( xyzAccelVectors[i] );
+            }
+            noTasks--;
+            return null;
         }
     }
 }
