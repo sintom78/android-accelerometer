@@ -15,6 +15,7 @@ def plot2D(data,figure=1,title="",show=True):
     for d in data:
         pyplot.subplot(sb)
         for dd in d['data']:
+#            print dd
             pyplot.plot(dd)
 
         pyplot.grid()

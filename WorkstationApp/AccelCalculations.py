@@ -85,4 +85,17 @@ def calcInteg(a,dt):
 
     return v
 
+def calcDeriv(a,dt):
+    i = 0
+    v = []
+    x = 0
+    while i<len(dt):
+        if i==0:
+            v.append(0)
+        else:
+            v.append((a[i]-a[i-1])/dt[i])
+        i=i+1
+
+    return v
+
 
