@@ -28,10 +28,18 @@ def plot2D(data,figure=1,title="",show=True):
         pyplot.show()
 
 
-def plot3D(x,fx,y,fy,z,fz,mod,fmod):
+def plot3D(x,y,z): #,fy,z,fz,mod,fmod):
     fig = pyplot.figure()
     ax = Axes3D(fig)
-    ax.plot(xs=fx,ys=fy,zs=fz) #,rstride=1,cstride=1,cmap=cm.jet)
+    ax.plot(xs=x,ys=y,zs=z) #,rstride=1,cstride=1,cmap=cm.jet)
+    pyplot.show()
+
+def plotPlane2D(x,y): #,fy,z,fz,mod,fmod):
+#    fig = pyplot.figure()
+#    ax = Axes3D(fig)
+#    ax.plot(xs=x,ys=y,zs=z) #,rstride=1,cstride=1,cmap=cm.jet)
+    pyplot.grid()
+    pyplot.plot(x,y)
     pyplot.show()
 
 

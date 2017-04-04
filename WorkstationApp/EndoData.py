@@ -24,6 +24,8 @@ class EndoPoint(object):
         self.deltaT = 0
         self.deltadistance = 0
         self.distance = 0
+        self.distanceXY = 0
+        self.deltaDistanceXY = 0
 
     def __init__(self, lat, lon, alt, dattime, endodist=0):
         self.dattime = dattime #datetime
@@ -45,6 +47,8 @@ class EndoPoint(object):
         self.deltaT = 0 #in seconds
         self.deltadistance = 0
         self.distance = 0
+        self.distanceXY = 0
+        self.deltaDistanceXY = 0
 
     def __str__(self):
         s= "----Endo Point----\n"
@@ -88,11 +92,13 @@ class EndoPoint(object):
         dy = self.y - prevEndoPoint.y
         dz = self.z - prevEndoPoint.z
         self.deltadistance = numpy.sqrt(dz**2 + dy**2 + dx**2)
+        self.deltaDistanceXY = numpy.sqrt(dx**2+dy**2)
         self.ddist = self.endoDist - prevEndoPoint.endoDist
 
     def calcDistance(self,prevEndoPoint):
          self.distance = prevEndoPoint.distance + self.deltadistance
-         
+         self.distanceXY = prevEndoPoint.distanceXY + self.deltaDistanceXY
+
 
 class EndoData(object):
     def __init__(self):
@@ -153,6 +159,12 @@ class EndoData(object):
 
     def getDistanceCollection(self,start=0,end=-1):
         return self.generateCollection(lambda endoP: endoP.distance,start,end)
+
+    def getDeltaDistanceXYCollection(self,start=0,end=-1):
+        return self.generateCollection(lambda endoP: endoP.deltaDistanceXY,start,end)
+
+    def getDistanceXYCollection(self,start=0,end=-1):
+        return self.generateCollection(lambda endoP: endoP.distanceXY,start,end)
 
     def getDeltaDistanceCollection(self,start=0,end=-1):
         return self.generateCollection(lambda endoP: endoP.deltadistance,start,end)

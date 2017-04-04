@@ -7,6 +7,7 @@ from AccelData import AccelPoint
 import AccelCalculations as AccelCalc
 from AccelPlot import plot2D
 from AccelPlot import plot3D
+from AccelPlot import plotPlane2D
 import copy
 from EndoData import EndoData
 import numpy
@@ -78,14 +79,10 @@ def parseArgs(argv):
            sys.exit(2)
 
 
-def main(argv):
-    parseArgs(argv)
-
+def accelWork():
     accelData = AccelData()
     accelData.loadAccelData(globals()['inputfile'])
     accelData.calcDeltasT()
-    endoData = EndoData()
-    endoData.loadEndoData(globals()['endofile'])
     OFFSET = 10
     x = accelData.getXCollection(OFFSET)
     y = accelData.getYCollection(OFFSET)
@@ -98,13 +95,29 @@ def main(argv):
 #    amod,devmod = AccelCalc.avgWithStep(mod,8)
 #    afmod,devafmod = AccelCalc.avgWithStep(fmod,8)
 
-#    plotSpeedVelocityModule(accelData,OFFSET)
-#    plotSVFilteredMod(accelData, OFFSET)
+    plotSpeedVelocityModule(accelData,OFFSET)
+    plotSVFilteredMod(accelData, OFFSET)
 
 #    plotSpeedVelocityX(accelData,OFFSET)
 #    plotSpeedVelocityY(accelData,OFFSET)
 #    plotSpeedVelocityZ(accelData,OFFSET)
 
+#    dplot = [ {'data': [vel],'legend': ['velocity']},
+#              {'data': [distances], 'legend': ['distance']}
+#            ]
+
+#    print distances 
+
+#    dplot = [
+#                {'data': [offD,vD,D], 'legend': ['offset','V','Orig']},
+#                {'data': [sD], 'legend': ['Distance'] }
+#            ]
+#    plot2D(dplot,1,"Velocity") 
+
+
+def endoWork():
+    endoData = EndoData()
+    endoData.loadEndoData(globals()['endofile'])
     endoData.calculateDeltasT()
     endoData.calcDeltaDistances()
     endoData.calcDistances()
@@ -128,19 +141,6 @@ def main(argv):
  
         i += 1
     vel = AccelCalc.calcDeriv(distances,dt)
-
-#    dplot = [ {'data': [vel],'legend': ['velocity']},
-#              {'data': [distances], 'legend': ['distance']}
-#            ]
-
-#    print distances 
-
-#    dplot = [
-#                {'data': [offD,vD,D], 'legend': ['offset','V','Orig']},
-#                {'data': [sD], 'legend': ['Distance'] }
-#            ]
-#    plot2D(dplot,1,"Velocity") 
-
     dplot = [ {'data': [deltadistances,endoDeltaDistances], 'legend': ['deltadistance','endo']},
               {'data':[dd],'legend':['deltas']}
             ]
@@ -154,6 +154,23 @@ def main(argv):
     dplot = [ {'data':[dd],'legend':['deltas']}]
     plot2D(dplot,1,"Delta delta")
 
+#DRAW TRACK
+    x = endoData.getXCollection()
+    y = endoData.getYCollection()
+    z = endoData.getAltCollection() #getZCollection()
+#    plot3D(x,y,z)
+    plotPlane2D(x,y)
+    distanceXY = endoData.getDistanceXYCollection()
+    print "DistanceXY: " + str(distanceXY[len(distanceXY)-1])
+    deltaDistanceXY = endoData.getDeltaDistanceXYCollection()
+    dplot = [ {'data': [deltaDistanceXY], 'legend':['deltaDistXY']}]
+    plot2D(dplot,1,"Delta Distance XY")
+
+ 
+def main(argv):
+    parseArgs(argv)
+    accelWork()
+    endoWork()
 
 if __name__=="__main__":
     main(sys.argv[1:])
