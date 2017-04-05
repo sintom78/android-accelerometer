@@ -1,25 +1,18 @@
 import xml.etree.ElementTree as ElementTree
 from datetime import datetime
+from CoordinateSysPoints import GeoPoint, XYZPoint
 import numpy
 
 GARMIN_NS = {"garmin":"http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"}
 SEC_PER_DAY = 86400
-EARTH_RADIUS = 6371000 #meters
-E_B = 6353000
-E_A = 6384000
-
 
 class EndoPoint(object):
     def __init__(self):
         self.dattime = 0
-        self.lat = 0
-        self.lon = 0
-        self.alt = 0
+        self.geoPoint = GeoPoint()
         self.endoDist = 0
         self.ddist = 0
-        self.x = 0
-        self.y = 0
-        self.z = 0
+        self.xyzPoint = XYZPoint()
         self.mod = 0
         self.deltaT = 0
         self.deltadistance = 0
@@ -29,20 +22,10 @@ class EndoPoint(object):
 
     def __init__(self, lat, lon, alt, dattime, endodist=0):
         self.dattime = dattime #datetime
-        self.lat = lat #latitude degrees
-        self.lon = lon #longitude degrees
-        self.alt = alt #altitude meters
+        self.geoPoint = GeoPoint(lon,lat,alt)
         self.endoDist = endodist
         self.ddist = 0
-        lat_rad = numpy.deg2rad(lat)
-        lon_rad = numpy.deg2rad(lon)
-        #R=EARTH_RADIUS+35150
-        R = self.getN(lat_rad)
-        a = E_A
-        b = E_B
-        self.x = (alt+R)*numpy.cos(lat_rad)*numpy.cos(lon_rad) #meters
-        self.y = (alt+R)*numpy.cos(lat_rad)*numpy.sin(lon_rad) #meters
-        self.z = (alt+R*(b**2)/(a**2))*numpy.sin(lat_rad) #meters
+        self.xyzPoint = self.geoPoint.getXYZPoint()
         self.mod = alt #meters
         self.deltaT = 0 #in seconds
         self.deltadistance = 0
@@ -53,9 +36,9 @@ class EndoPoint(object):
     def __str__(self):
         s= "----Endo Point----\n"
         s+= "time="+str(self.dattime)+"\n"
-        s+= "lat="+str(self.lat)
-        s+= ", lon="+str(self.lon)
-        s+= ", alt="+str(self.alt)+"\n"
+        s+= "lat="+str(self.geoPoint.lat)
+        s+= ", lon="+str(self.geoPoint.lon)
+        s+= ", alt="+str(self.geoPoint.alt)+"\n"
         s+= "deltaT="+str(self.deltaT)+"\n"
         s+= "distance="+str(self.distance)
         s+= ", deltadistance="+str(self.deltadistance)+"\n"
@@ -64,33 +47,14 @@ class EndoPoint(object):
         
         return s
 
-    def getN(self, lat_rad):
-        a = E_A 
-        b = E_B
-        n = numpy.sqrt((a**2)*numpy.cos(lat_rad)**2+(b**2)*numpy.sin(lat_rad)**2)
-        return (a**2)/n
-#    def initWithXYZ(self, x, y, z, dattime):
-#        self.dattime = dattime
-#        self.lat = 0
-#        self.lon = 0
-#        self.alt = 0
-#        self.x = x
-#        self.y = y
-#        self.z = z
-#        m = self.x**2 + self.y**2 + self.z**2
-#        self.mod = numpy.sqrt(m)
-#        self.deltaT = 0
-
-#    def initWithGeo():
-
     def calcDeltaT(self,prevEndoPoint):
         delta = self.dattime - prevEndoPoint.dattime
         self.deltaT = delta.days*SEC_PER_DAY+delta.seconds+delta.microseconds/1000000.0
 
     def calcDeltaDistance(self,prevEndoPoint):
-        dx = self.x - prevEndoPoint.x
-        dy = self.y - prevEndoPoint.y
-        dz = self.z - prevEndoPoint.z
+        dx = self.xyzPoint.x - prevEndoPoint.xyzPoint.x
+        dy = self.xyzPoint.y - prevEndoPoint.xyzPoint.y
+        dz = self.xyzPoint.z - prevEndoPoint.xyzPoint.z
         self.deltadistance = numpy.sqrt(dz**2 + dy**2 + dx**2)
         self.deltaDistanceXY = numpy.sqrt(dx**2+dy**2)
         self.ddist = self.endoDist - prevEndoPoint.endoDist
@@ -170,23 +134,23 @@ class EndoData(object):
         return self.generateCollection(lambda endoP: endoP.deltadistance,start,end)
 
     def getLatCollection(self,start=0,end=-1):
-        return self.generateCollection(lambda endoP: endoP.lat,start,end)
+        return self.generateCollection(lambda endoP: endoP.geoPoint.lat,start,end)
 
     def getLonCollection(self,start=0,end=-1):
-        return self.generateCollection(lambda endoP: endoP.lon,start,end)
+        return self.generateCollection(lambda endoP: endoP.geoPoint.lon,start,end)
 
     def getAltCollection(self,start=0,end=-1):
-        return self.generateCollection(lambda endoP: endoP.alt,start,end)
+        return self.generateCollection(lambda endoP: endoP.geoPoint.alt,start,end)
 
     def getXCollection(self,start=0,end=-1):
 #        x = fakeCollection(self.accelData, lambda accPoint: accPoint.x)
-        return self.generateCollection(lambda endoP: endoP.x,start,end)
+        return self.generateCollection(lambda endoP: endoP.xyzPoint.x,start,end)
 
     def getYCollection(self,start=0,end=-1):
-        return self.generateCollection(lambda endoP: endoP.y,start,end)
+        return self.generateCollection(lambda endoP: endoP.xyzPoint.y,start,end)
 
     def getZCollection(self,start=0,end=-1):
-        return self.generateCollection(lambda endoP: endoP.z,start,end)
+        return self.generateCollection(lambda endoP: endoP.xyzPoint.z,start,end)
 
     def getDatetimeCollection(self,start=0,end=-1):
         return self.generateCollection(lambda endoP: endoP.datTime,start,end)
